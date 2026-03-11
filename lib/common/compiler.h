@@ -131,6 +131,15 @@
  */
 #define BMI2_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("lzcnt,bmi,bmi2")
 
+/* Target attribute for APXF dynamic dispatch.
+ * Includes BMI2 features as well.
+ */
+#ifdef __clang__
+#  define APXF_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("egpr,push2pop2,ndd,ccmp,lzcnt,bmi,bmi2")
+#else
+#  define APXF_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("apxf,lzcnt,bmi,bmi2")
+#endif
+
 /* prefetch
  * can be disabled, by declaring NO_PREFETCH build macro */
 #if defined(NO_PREFETCH)

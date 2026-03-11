@@ -87,6 +87,17 @@
 #  define STATIC_BMI2 0
 #endif
 
+/* Compile time determination of APXF support */
+#ifndef STATIC_APXF
+#  if defined(__APXF__)
+#    define STATIC_APXF 1
+#  endif
+#endif
+
+#ifndef STATIC_APXF
+#  define STATIC_APXF 0
+#endif
+
 /* Enable runtime BMI2 dispatch based on the CPU.
  * Enabled for clang & gcc >=4.8 on x86 when BMI2 isn't enabled by default.
  */
@@ -99,6 +110,21 @@
 #    define DYNAMIC_BMI2 1
 #  else
 #    define DYNAMIC_BMI2 0
+#  endif
+#endif
+
+/* Enable runtime APXF dispatch based on the CPU.
+ * Enabled for clang & gcc on x86 when APXF isn't enabled by default.
+ */
+#ifndef DYNAMIC_APXF
+#  if ((defined(__clang__) && __has_attribute(__target__)) \
+      || (defined(__GNUC__) \
+          && (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)))) \
+      && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) \
+      && !defined(__APXF__)
+#    define DYNAMIC_APXF 1
+#  else
+#    define DYNAMIC_APXF 0
 #  endif
 #endif
 

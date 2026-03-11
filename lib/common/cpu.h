@@ -27,6 +27,7 @@ typedef struct {
     U32 f1d;
     U32 f7b;
     U32 f7c;
+    U32 f71d;
 } ZSTD_cpuid_t;
 
 MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
@@ -34,6 +35,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     U32 f1d = 0;
     U32 f7b = 0;
     U32 f7c = 0;
+    U32 f71d = 0;
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
 #if !defined(_M_X64) || !defined(__clang__) || __clang_major__ >= 16
     int reg[4];
@@ -49,6 +51,8 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
             __cpuidex((int*)reg, 7, 0);
             f7b = (U32)reg[1];
             f7c = (U32)reg[2];
+            __cpuidex((int*)reg, 7, 1);
+            f71d = (U32)reg[3];
         }
     }
 #else
@@ -84,6 +88,14 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           : "=a"(f7b), "=c"(f7c)
           : "a"(7), "c"(0)
           : "rdx");
+      U32 f71a, f71c;
+      __asm__(
+          "pushq %%rbx\n\t"
+          "cpuid\n\t"
+          "popq %%rbx"
+          : "=a"(f71a), "=c"(f71c), "=d"(f71d)
+          : "a"(7), "c"(1)
+          );
     }
 #endif
 #elif defined(__i386__) && defined(__PIC__) && !defined(__clang__) && defined(__GNUC__)
@@ -117,6 +129,14 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           : "=a"(f7b), "=c"(f7c)
           : "a"(7), "c"(0)
           : "edx");
+      U32 f71a, f71c;
+      __asm__(
+          "pushl %%ebx\n\t"
+          "cpuid\n\t"
+          "popl %%ebx"
+          : "=a"(f71a), "=c"(f71c), "=d"(f71d)
+          : "a"(7), "c"(1)
+          );
     }
 #elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
     U32 n;
@@ -131,6 +151,11 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
               : "=a"(f7a), "=b"(f7b), "=c"(f7c)
               : "a"(7), "c"(0)
               : "edx");
+      U32 f71a, f71b, f71c;
+      __asm__("cpuid"
+              : "=a"(f71a), "=b"(f71b), "=c"(f71c), "=d"(f71d)
+              : "a"(7), "c"(1)
+              );
     }
 #endif
     {
@@ -139,6 +164,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
         cpuid.f1d = f1d;
         cpuid.f7b = f7b;
         cpuid.f7c = f7c;
+        cpuid.f71d = f71d;
         return cpuid;
     }
 }
@@ -243,6 +269,11 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
   C(prefetchwt1, 0)
   C(avx512vbmi, 1)
 #undef C
+
+/* cpuid(7, 1): Extended Features. */
+#define D(name, bit) X(name, f71d, bit)
+  D(apx_f, 21)
+#undef D
 
 #undef X
 
