@@ -28,7 +28,24 @@ typedef struct {
     U32 f7b;
     U32 f7c;
     U32 f71d;
+    U32 xcr0_eax;
 } ZSTD_cpuid_t;
+
+MEM_STATIC U32 ZSTD_xgetbv(void) {
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+    return (U32)_xgetbv(0);
+#elif defined(__i386__) && defined(__PIC__) && !defined(__clang__) && defined(__GNUC__)
+    U32 eax, edx;
+    __asm__(".byte 0x0f, 0x01, 0xd0" : "=a"(eax), "=d"(edx) : "c"(0));
+    return eax;
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
+    U32 eax, edx;
+    __asm__(".byte 0x0f, 0x01, 0xd0" : "=a"(eax), "=d"(edx) : "c"(0));
+    return eax;
+#else
+    return 0;
+#endif
+}
 
 MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     U32 f1c = 0;
@@ -36,6 +53,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     U32 f7b = 0;
     U32 f7c = 0;
     U32 f71d = 0;
+    U32 xcr0_eax = 0;
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
 #if !defined(_M_X64) || !defined(__clang__) || __clang_major__ >= 16
     int reg[4];
@@ -158,6 +176,12 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
               );
     }
 #endif
+
+    /* Check OS enablement of extended states (XCR0) if OSXSAVE is supported */
+    if (f1c & (1U << 27)) {
+        xcr0_eax = ZSTD_xgetbv();
+    }
+
     {
         ZSTD_cpuid_t cpuid;
         cpuid.f1c = f1c;
@@ -165,6 +189,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
         cpuid.f7b = f7b;
         cpuid.f7c = f7c;
         cpuid.f71d = f71d;
+        cpuid.xcr0_eax = xcr0_eax;
         return cpuid;
     }
 }
@@ -272,8 +297,12 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
 
 /* cpuid(7, 1): Extended Features. */
 #define D(name, bit) X(name, f71d, bit)
-  D(apx_f, 21)
+  D(apx_f_hw, 21)
 #undef D
+
+MEM_STATIC int ZSTD_cpuid_apx_f(ZSTD_cpuid_t const cpuid) {
+    return ZSTD_cpuid_apx_f_hw(cpuid) && ((cpuid.xcr0_eax & (1U << 19)) != 0);
+}
 
 #undef X
 
