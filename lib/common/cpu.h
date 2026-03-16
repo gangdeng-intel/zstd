@@ -28,6 +28,7 @@ typedef struct {
     U32 f7b;
     U32 f7c;
     U32 f71d;
+    U32 f29b;
     U32 xcr0_eax;
 } ZSTD_cpuid_t;
 
@@ -53,6 +54,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     U32 f7b = 0;
     U32 f7c = 0;
     U32 f71d = 0;
+    U32 f29b = 0;
     U32 xcr0_eax = 0;
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
 #if !defined(_M_X64) || !defined(__clang__) || __clang_major__ >= 16
@@ -71,6 +73,10 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
             f7c = (U32)reg[2];
             __cpuidex((int*)reg, 7, 1);
             f71d = (U32)reg[3];
+        }
+        if (n >= 0x29) {
+            __cpuidex((int*)reg, 0x29, 0);
+            f29b = (U32)reg[1];
         }
     }
 #else
@@ -115,6 +121,17 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           : "a"(7), "c"(1)
           );
     }
+    if (n >= 0x29) {
+      U32 f29c, f29d;
+      __asm__(
+          "pushq %%rbx\n\t"
+          "cpuid\n\t"
+          "movq %%rbx, %%rax\n\t"
+          "popq %%rbx"
+          : "=a"(f29b), "=c"(f29c), "=d"(f29d)
+          : "a"(0x29), "c"(0)
+          );
+    }
 #endif
 #elif defined(__i386__) && defined(__PIC__) && !defined(__clang__) && defined(__GNUC__)
     /* The following block like the normal cpuid branch below, but gcc
@@ -156,6 +173,17 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           : "a"(7), "c"(1)
           );
     }
+    if (n >= 0x29) {
+      U32 f29c, f29d;
+      __asm__(
+          "pushl %%ebx\n\t"
+          "cpuid\n\t"
+          "movl %%ebx, %%eax\n\t"
+          "popl %%ebx"
+          : "=a"(f29b), "=c"(f29c), "=d"(f29d)
+          : "a"(0x29), "c"(0)
+          );
+    }
 #elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
     U32 n;
     __asm__("cpuid" : "=a"(n) : "a"(0) : "ebx", "ecx", "edx");
@@ -175,6 +203,13 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
               : "a"(7), "c"(1)
               );
     }
+    if (n >= 0x29) {
+      U32 f29a, f29c, f29d;
+      __asm__("cpuid"
+              : "=a"(f29a), "=b"(f29b), "=c"(f29c), "=d"(f29d)
+              : "a"(0x29), "c"(0)
+              );
+    }
 #endif
 
     /* Check OS enablement of extended states (XCR0) if OSXSAVE is supported */
@@ -189,6 +224,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
         cpuid.f7b = f7b;
         cpuid.f7c = f7c;
         cpuid.f71d = f71d;
+        cpuid.f29b = f29b;
         cpuid.xcr0_eax = xcr0_eax;
         return cpuid;
     }
@@ -300,8 +336,13 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
   D(apx_f_hw, 21)
 #undef D
 
+/* cpuid(0x29, 0): APX Features. */
+#define E(name, bit) X(name, f29b, bit)
+  E(apx_nci_ndd_nf_hw, 0)
+#undef E
+
 MEM_STATIC int ZSTD_cpuid_apx_f(ZSTD_cpuid_t const cpuid) {
-    return ZSTD_cpuid_apx_f_hw(cpuid) && ((cpuid.xcr0_eax & (1U << 19)) != 0);
+    return ZSTD_cpuid_apx_f_hw(cpuid) && ZSTD_cpuid_apx_nci_ndd_nf_hw(cpuid) && ((cpuid.xcr0_eax & (1U << 19)) != 0);
 }
 
 #undef X
