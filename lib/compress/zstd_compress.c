@@ -113,6 +113,9 @@ static void ZSTD_initCCtx(ZSTD_CCtx* cctx, ZSTD_customMem memManager)
     ZSTD_memset(cctx, 0, sizeof(*cctx));
     cctx->customMem = memManager;
     cctx->bmi2 = ZSTD_cpuSupportsBmi2();
+#if DYNAMIC_APXF
+    cctx->apxf = ZSTD_cpuSupportsApxf();
+#endif
     {   size_t const err = ZSTD_CCtx_reset(cctx, ZSTD_reset_parameters);
         assert(!ZSTD_isError(err));
         (void)err;
@@ -2032,6 +2035,9 @@ ZSTD_reset_matchState(ZSTD_MatchState_t* ms,
 
     ms->hashLog3 = hashLog3;
     ms->lazySkipping = 0;
+#if DYNAMIC_APXF
+    ms->apxf = 0;
+#endif
 
     ZSTD_invalidateMatchState(ms);
 
@@ -2214,6 +2220,9 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
 
         /* init params */
         zc->blockState.matchState.cParams = params->cParams;
+    #if DYNAMIC_APXF
+        zc->blockState.matchState.apxf = zc->apxf;
+    #endif
         zc->blockState.matchState.prefetchCDictTables = params->prefetchCDictTables == ZSTD_ps_enable;
         zc->pledgedSrcSizePlusOne = pledgedSrcSize+1;
         zc->consumedSrcSize = 0;

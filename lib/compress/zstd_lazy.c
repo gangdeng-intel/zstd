@@ -1403,6 +1403,7 @@ size_t ZSTD_RowFindBestMatch(
 #define ZSTD_BT_SEARCH_FN(dictMode, mls) ZSTD_BtFindBestMatch_##dictMode##_##mls
 #define ZSTD_HC_SEARCH_FN(dictMode, mls) ZSTD_HcFindBestMatch_##dictMode##_##mls
 #define ZSTD_ROW_SEARCH_FN(dictMode, mls, rowLog) ZSTD_RowFindBestMatch_##dictMode##_##mls##_##rowLog
+#define ZSTD_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog) ZSTD_RowFindBestMatch_##dictMode##_##mls##_##rowLog##_apxf
 
 #define ZSTD_SEARCH_FN_ATTRS FORCE_NOINLINE
 
@@ -1437,6 +1438,19 @@ size_t ZSTD_RowFindBestMatch(
         return ZSTD_RowFindBestMatch(ms, ip, iLimit, offsetPtr, mls, ZSTD_##dictMode, rowLog); \
     }                                                                                          \
 
+#if DYNAMIC_APXF
+#define GEN_ZSTD_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog)                                     \
+    APXF_TARGET_ATTRIBUTE ZSTD_SEARCH_FN_ATTRS size_t ZSTD_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog)( \
+            ZSTD_MatchState_t* ms,                                                             \
+            const BYTE* ip, const BYTE* const iLimit,                                          \
+            size_t* offsetPtr)                                                                 \
+    {                                                                                          \
+        assert(MAX(4, MIN(6, ms->cParams.minMatch)) == mls);                                   \
+        assert(MAX(4, MIN(6, ms->cParams.searchLog)) == rowLog);                               \
+        return ZSTD_RowFindBestMatch(ms, ip, iLimit, offsetPtr, mls, ZSTD_##dictMode, rowLog); \
+    }
+#endif
+
 #define ZSTD_FOR_EACH_ROWLOG(X, dictMode, mls) \
     X(dictMode, mls, 4)                        \
     X(dictMode, mls, 5)                        \
@@ -1460,6 +1474,10 @@ size_t ZSTD_RowFindBestMatch(
 
 /* Generate row search fns for each combination of (dictMode, mls, rowLog) */
 ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS_ROWLOG, GEN_ZSTD_ROW_SEARCH_FN)
+#if DYNAMIC_APXF
+/* Generate APXF row search fns for each combination of (dictMode, mls, rowLog) */
+ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS_ROWLOG, GEN_ZSTD_ROW_SEARCH_FN_APXF)
+#endif
 /* Generate binary Tree search fns for each combination of (dictMode, mls) */
 ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS, GEN_ZSTD_BT_SEARCH_FN)
 /* Generate hash chain search fns for each combination of (dictMode, mls) */
@@ -1477,6 +1495,12 @@ typedef enum { search_hashChain=0, search_binaryTree=1, search_rowHash=2 } searc
     case rowLog:                                                                   \
         return ZSTD_ROW_SEARCH_FN(dictMode, mls, rowLog)(ms, ip, iend, offsetPtr);
 
+#if DYNAMIC_APXF
+#define GEN_ZSTD_CALL_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog)                         \
+    case rowLog:                                                                        \
+        return ZSTD_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog)(ms, ip, iend, offsetPtr);
+#endif
+
 #define ZSTD_SWITCH_MLS(X, dictMode)   \
     switch (mls) {                     \
         ZSTD_FOR_EACH_MLS(X, dictMode) \
@@ -1489,6 +1513,22 @@ typedef enum { search_hashChain=0, search_binaryTree=1, search_rowHash=2 } searc
         }                                                                    \
         ZSTD_UNREACHABLE;                                                    \
         break;
+
+#if DYNAMIC_APXF
+#define ZSTD_SWITCH_ROWLOG_APXF(dictMode, mls)                                     \
+    case mls:                                                                      \
+        switch (rowLog) {                                                          \
+            ZSTD_FOR_EACH_ROWLOG(GEN_ZSTD_CALL_ROW_SEARCH_FN_APXF, dictMode, mls) \
+        }                                                                          \
+        ZSTD_UNREACHABLE;                                                          \
+        break;
+
+#define ZSTD_SWITCH_ROW_HASH_APXF(dictMode)            \
+    switch (mls) {                                     \
+        ZSTD_FOR_EACH_MLS(ZSTD_SWITCH_ROWLOG_APXF, dictMode) \
+    }                                                   \
+    ZSTD_UNREACHABLE;
+#endif
 
 #define ZSTD_SWITCH_SEARCH_METHOD(dictMode)                       \
     switch (searchMethod) {                                       \
@@ -1538,6 +1578,20 @@ FORCE_INLINE_TEMPLATE size_t ZSTD_searchMax(
     searchMethod_e const searchMethod,
     ZSTD_dictMode_e const dictMode)
 {
+#if DYNAMIC_APXF
+    if (searchMethod == search_rowHash && ms->apxf) {
+        if (dictMode == ZSTD_noDict) {
+            ZSTD_SWITCH_ROW_HASH_APXF(noDict)
+        } else if (dictMode == ZSTD_extDict) {
+            ZSTD_SWITCH_ROW_HASH_APXF(extDict)
+        } else if (dictMode == ZSTD_dictMatchState) {
+            ZSTD_SWITCH_ROW_HASH_APXF(dictMatchState)
+        } else if (dictMode == ZSTD_dedicatedDictSearch) {
+            ZSTD_SWITCH_ROW_HASH_APXF(dedicatedDictSearch)
+        }
+        ZSTD_UNREACHABLE;
+    }
+#endif
     if (dictMode == ZSTD_noDict) {
         ZSTD_SWITCH_SEARCH_METHOD(noDict)
     } else if (dictMode == ZSTD_extDict) {
