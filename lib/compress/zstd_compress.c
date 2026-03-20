@@ -4638,6 +4638,11 @@ static size_t ZSTD_compress_frameChunk(ZSTD_CCtx* cctx,
 
     DEBUGLOG(5, "ZSTD_compress_frameChunk (srcSize=%u, blockSizeMax=%u)", (unsigned)srcSize, (unsigned)blockSizeMax);
     if (cctx->appliedParams.fParams.checksumFlag && srcSize)
+#if DYNAMIC_APXF
+        if (cctx->apxf) {
+            XXH64_update_apxf(&cctx->xxhState, src, srcSize);
+        } else
+#endif
         XXH64_update(&cctx->xxhState, src, srcSize);
 
     while (remaining) {
@@ -7115,6 +7120,11 @@ size_t ZSTD_compressSequences(ZSTD_CCtx* cctx,
         cSize += frameHeaderSize;
     }
     if (cctx->appliedParams.fParams.checksumFlag && srcSize) {
+#if DYNAMIC_APXF
+        if (cctx->apxf) {
+            XXH64_update_apxf(&cctx->xxhState, src, srcSize);
+        } else
+#endif
         XXH64_update(&cctx->xxhState, src, srcSize);
     }
 

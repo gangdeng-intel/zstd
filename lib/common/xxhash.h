@@ -3569,8 +3569,8 @@ XXH_PUBLIC_API XXH_errorcode XXH64_reset(XXH_NOESCAPE XXH64_state_t* statePtr, X
 }
 
 /*! @ingroup XXH64_family */
-XXH_PUBLIC_API XXH_errorcode
-XXH64_update (XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* input, size_t len)
+XXH_FORCE_INLINE XXH_errorcode
+XXH64_update_body(XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* input, size_t len)
 {
     if (input==NULL) {
         XXH_ASSERT(len == 0);
@@ -3617,6 +3617,32 @@ XXH64_update (XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* input,
     }
 
     return XXH_OK;
+}
+
+#if defined(DYNAMIC_APXF) && (DYNAMIC_APXF != 0)
+XXH_FORCE_INLINE int XXH_cpuSupportsApxf(void)
+{
+    ZSTD_cpuid_t const cpuid = ZSTD_cpuid();
+    return ZSTD_cpuid_apx_f(cpuid);
+}
+
+static APXF_TARGET_ATTRIBUTE XXH_errorcode
+XXH64_update_apxf(XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* input, size_t len)
+{
+    return XXH64_update_body(state, input, len);
+}
+#endif
+
+/*! @ingroup XXH64_family */
+XXH_PUBLIC_API XXH_errorcode
+XXH64_update (XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* input, size_t len)
+{
+#if defined(DYNAMIC_APXF) && (DYNAMIC_APXF != 0)
+    if (XXH_cpuSupportsApxf()) {
+        return XXH64_update_apxf(state, input, len);
+    }
+#endif
+    return XXH64_update_body(state, input, len);
 }
 
 
