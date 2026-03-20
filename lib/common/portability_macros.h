@@ -114,12 +114,13 @@
 #endif
 
 /* Enable runtime APXF dispatch based on the CPU.
- * Enabled for clang & gcc on x86 when APXF isn't enabled by default.
+ * Enabled for clang >=20 & gcc >=15 on x86 when APXF isn't enabled by default.
  */
 #ifndef DYNAMIC_APXF
 #  if ((defined(__clang__) && __has_attribute(__target__)) \
-      || (defined(__GNUC__) \
-          && (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)))) \
+      && (__clang_major__ >= 20)) \
+      || (defined(__GNUC__) && !defined(__clang__) \
+          && (__GNUC__ >= 15)) \
       && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) \
       && !defined(__APXF__)
 #    define DYNAMIC_APXF 1

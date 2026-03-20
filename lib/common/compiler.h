@@ -141,7 +141,7 @@
 #    define APXF_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("lzcnt,bmi,bmi2")
 #  endif
 #elif defined(__GNUC__)
-#  if __GNUC__ >= 14
+#  if __GNUC__ >= 15
 #    define APXF_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("apxf,lzcnt,bmi,bmi2")
 #  else
 #    define APXF_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("lzcnt,bmi,bmi2")
