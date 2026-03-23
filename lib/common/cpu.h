@@ -86,6 +86,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
      * ourselves. Clang supports inline assembly anyway.
      */
     U32 n;
+    U32 f1a, f7a, f71a, f71b, f71c, f29a, f29c, f29d;
     __asm__(
         "pushq %%rbx\n\t"
         "cpuid\n\t"
@@ -94,7 +95,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
         : "a"(0)
         : "rcx", "rdx");
     if (n >= 1) {
-      U32 f1a;
+      
       __asm__(
           "pushq %%rbx\n\t"
           "cpuid\n\t"
@@ -112,7 +113,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           : "=a"(f7b), "=c"(f7c)
           : "a"(7), "c"(0)
           : "rdx");
-      U32 f71a, f71c;
+      /* U32 f71a, f71c moved */
       __asm__(
           "pushq %%rbx\n\t"
           "cpuid\n\t"
@@ -122,7 +123,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           );
     }
     if (n >= 0x29) {
-      U32 f29c, f29d;
+      
       __asm__(
           "pushq %%rbx\n\t"
           "cpuid\n\t"
@@ -139,6 +140,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
      * handle the save and restore to avoid clobbering the register
      */
     U32 n;
+    U32 f1a, f7a, f71a, f71b, f71c, f29a, f29c, f29d;
     __asm__(
         "pushl %%ebx\n\t"
         "cpuid\n\t"
@@ -147,7 +149,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
         : "a"(0)
         : "ecx", "edx");
     if (n >= 1) {
-      U32 f1a;
+      
       __asm__(
           "pushl %%ebx\n\t"
           "cpuid\n\t"
@@ -164,7 +166,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           : "=a"(f7b), "=c"(f7c)
           : "a"(7), "c"(0)
           : "edx");
-      U32 f71a, f71c;
+      /* U32 f71a, f71c moved */
       __asm__(
           "pushl %%ebx\n\t"
           "cpuid\n\t"
@@ -174,7 +176,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
           );
     }
     if (n >= 0x29) {
-      U32 f29c, f29d;
+      
       __asm__(
           "pushl %%ebx\n\t"
           "cpuid\n\t"
@@ -186,25 +188,27 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     }
 #elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
     U32 n;
+    U32 f1a, f7a, f71a, f71b, f71c, f29a, f29c, f29d;
     __asm__("cpuid" : "=a"(n) : "a"(0) : "ebx", "ecx", "edx");
     if (n >= 1) {
-      U32 f1a;
+      
       __asm__("cpuid" : "=a"(f1a), "=c"(f1c), "=d"(f1d) : "a"(1) : "ebx");
     }
     if (n >= 7) {
-      U32 f7a;
+      
+      U32 f71a, f71b, f71c;
       __asm__("cpuid"
               : "=a"(f7a), "=b"(f7b), "=c"(f7c)
               : "a"(7), "c"(0)
               : "edx");
-      U32 f71a, f71b, f71c;
+       
       __asm__("cpuid"
               : "=a"(f71a), "=b"(f71b), "=c"(f71c), "=d"(f71d)
               : "a"(7), "c"(1)
               );
     }
     if (n >= 0x29) {
-      U32 f29a, f29c, f29d;
+      
       __asm__("cpuid"
               : "=a"(f29a), "=b"(f29b), "=c"(f29c), "=d"(f29d)
               : "a"(0x29), "c"(0)

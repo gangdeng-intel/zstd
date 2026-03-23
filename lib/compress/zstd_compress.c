@@ -4637,7 +4637,7 @@ static size_t ZSTD_compress_frameChunk(ZSTD_CCtx* cctx,
     assert(cctx->appliedParams.cParams.windowLog <= ZSTD_WINDOWLOG_MAX);
 
     DEBUGLOG(5, "ZSTD_compress_frameChunk (srcSize=%u, blockSizeMax=%u)", (unsigned)srcSize, (unsigned)blockSizeMax);
-    if (cctx->appliedParams.fParams.checksumFlag && srcSize)
+    if (cctx->appliedParams.fParams.checksumFlag && srcSize) {
 #if DYNAMIC_APXF
         if (cctx->apxf) {
             XXH64_update_apxf(&cctx->xxhState, src, srcSize);
@@ -4645,6 +4645,7 @@ static size_t ZSTD_compress_frameChunk(ZSTD_CCtx* cctx,
 #endif
         XXH64_update(&cctx->xxhState, src, srcSize);
 
+    }
     while (remaining) {
         ZSTD_MatchState_t* const ms = &cctx->blockState.matchState;
         size_t const blockSize = ZSTD_optimalBlockSize(cctx,

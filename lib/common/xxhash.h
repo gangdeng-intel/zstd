@@ -458,6 +458,9 @@
 #  define XXH64_freeState XXH_NAME2(XXH_NAMESPACE, XXH64_freeState)
 #  define XXH64_reset XXH_NAME2(XXH_NAMESPACE, XXH64_reset)
 #  define XXH64_update XXH_NAME2(XXH_NAMESPACE, XXH64_update)
+#  define XXH64_update_apxf XXH_NAME2(XXH_NAMESPACE, XXH64_update_apxf)
+#  define XXH64_update_body XXH_NAME2(XXH_NAMESPACE, XXH64_update_body)
+#  define XXH_cpuSupportsApxf XXH_NAME2(XXH_NAMESPACE, XXH_cpuSupportsApxf)
 #  define XXH64_digest XXH_NAME2(XXH_NAMESPACE, XXH64_digest)
 #  define XXH64_copyState XXH_NAME2(XXH_NAMESPACE, XXH64_copyState)
 #  define XXH64_canonicalFromHash XXH_NAME2(XXH_NAMESPACE, XXH64_canonicalFromHash)
@@ -978,6 +981,10 @@ XXH_PUBLIC_API XXH_errorcode XXH64_reset  (XXH_NOESCAPE XXH64_state_t* statePtr,
  *
  * @note Call this to incrementally consume blocks of data.
  */
+#if defined(DYNAMIC_APXF) && (DYNAMIC_APXF != 0)
+XXH_PUBLIC_API XXH_errorcode XXH64_update_apxf (XXH_NOESCAPE XXH64_state_t* statePtr, XXH_NOESCAPE const void* input, size_t length);
+#endif
+
 XXH_PUBLIC_API XXH_errorcode XXH64_update (XXH_NOESCAPE XXH64_state_t* statePtr, XXH_NOESCAPE const void* input, size_t length);
 
 /*!
@@ -3620,13 +3627,14 @@ XXH64_update_body(XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* in
 }
 
 #if defined(DYNAMIC_APXF) && (DYNAMIC_APXF != 0)
+#include "cpu.h"
 XXH_FORCE_INLINE int XXH_cpuSupportsApxf(void)
 {
-    ZSTD_cpuid_t const cpuid = ZSTD_cpuid();
-    return ZSTD_cpuid_apx_f(cpuid);
+    static int supported = -1; if (supported < 0) { ZSTD_cpuid_t const cpuid = ZSTD_cpuid(); supported = ZSTD_cpuid_apx_f(cpuid); } return supported;
+
 }
 
-static APXF_TARGET_ATTRIBUTE XXH_errorcode
+APXF_TARGET_ATTRIBUTE XXH_PUBLIC_API XXH_errorcode
 XXH64_update_apxf(XXH_NOESCAPE XXH64_state_t* state, XXH_NOESCAPE const void* input, size_t len)
 {
     return XXH64_update_body(state, input, len);
