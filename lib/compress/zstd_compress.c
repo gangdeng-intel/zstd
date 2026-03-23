@@ -2036,7 +2036,7 @@ ZSTD_reset_matchState(ZSTD_MatchState_t* ms,
     ms->hashLog3 = hashLog3;
     ms->lazySkipping = 0;
 #if DYNAMIC_APXF
-    ms->apxf = 0;
+    ms->apxf = ZSTD_cpuSupportsApxf();
 #endif
 
     ZSTD_invalidateMatchState(ms);
@@ -2220,9 +2220,6 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
 
         /* init params */
         zc->blockState.matchState.cParams = params->cParams;
-    #if DYNAMIC_APXF
-        zc->blockState.matchState.apxf = zc->apxf;
-    #endif
         zc->blockState.matchState.prefetchCDictTables = params->prefetchCDictTables == ZSTD_ps_enable;
         zc->pledgedSrcSizePlusOne = pledgedSrcSize+1;
         zc->consumedSrcSize = 0;

@@ -328,8 +328,12 @@ MEM_STATIC int ZSTD_cpuSupportsBmi2(void)
  */
 MEM_STATIC int ZSTD_cpuSupportsApxf(void)
 {
-    ZSTD_cpuid_t cpuid = ZSTD_cpuid();
-    return ZSTD_cpuid_apx_f(cpuid);
+    static int supported = -1;
+    if (supported < 0) {
+        ZSTD_cpuid_t cpuid = ZSTD_cpuid();
+        supported = ZSTD_cpuid_apx_f(cpuid);
+    }
+    return supported;
 }
 
 #endif   /* ZSTD_CCOMMON_H_MODULE */
