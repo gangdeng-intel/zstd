@@ -86,7 +86,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
      * ourselves. Clang supports inline assembly anyway.
      */
     U32 n;
-    U32 f1a, f7a, f71a, f71b, f71c, f29a, f29c, f29d;
+    U32 f1a, f7a, f29a, f29c, f29d;
     __asm__(
         "pushq %%rbx\n\t"
         "cpuid\n\t"
@@ -140,7 +140,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
      * handle the save and restore to avoid clobbering the register
      */
     U32 n;
-    U32 f1a, f7a, f71a, f71b, f71c, f29a, f29c, f29d;
+    U32 f1a, f7a, f29a, f29c, f29d;
     __asm__(
         "pushl %%ebx\n\t"
         "cpuid\n\t"
@@ -188,7 +188,7 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     }
 #elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
     U32 n;
-    U32 f1a, f7a, f71a, f71b, f71c, f29a, f29c, f29d;
+    U32 f1a, f7a, f29a, f29c, f29d;
     __asm__("cpuid" : "=a"(n) : "a"(0) : "ebx", "ecx", "edx");
     if (n >= 1) {
       

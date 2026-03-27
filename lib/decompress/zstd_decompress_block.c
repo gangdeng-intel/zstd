@@ -158,6 +158,7 @@ static size_t ZSTD_decodeLiteralsBlock(ZSTD_DCtx* dctx,
                 size_t expectedWriteSize = MIN(blockSizeMax, dstCapacity);
                 int const flags = 0
                     | (ZSTD_DCtx_get_bmi2(dctx) ? HUF_flags_bmi2 : 0)
+                    | (ZSTD_DCtx_get_apxf(dctx) ? HUF_flags_apxf : 0)
                     | (dctx->disableHufAsm ? HUF_flags_disableAsm : 0);
                 switch(lhlCode)
                 {
