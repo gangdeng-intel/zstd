@@ -718,6 +718,12 @@ HUF_ASM_DECL void HUF_decompress4X1_usingDTable_internal_fast_asm_loop(HUF_Decom
 
 #endif
 
+#if ZSTD_ENABLE_ASM_X86_64_BMI2 && ZSTD_ENABLE_ASM_X86_64_APX
+
+HUF_ASM_DECL void HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx(HUF_DecompressFastArgs* args) ZSTDLIB_HIDDEN;
+
+#endif
+
 static HUF_FAST_BMI2_ATTRS
 void HUF_decompress4X1_usingDTable_internal_fast_c_loop(HUF_DecompressFastArgs* args)
 {
@@ -909,6 +915,12 @@ static size_t HUF_decompress4X1_usingDTable_internal(void* dst, size_t dstSize, 
             loopFn = HUF_decompress4X1_usingDTable_internal_fast_asm_loop;
         }
 # endif
+        /* APX check runs after BMI2 so it takes precedence when both are available. */
+# if ZSTD_ENABLE_ASM_X86_64_BMI2 && ZSTD_ENABLE_ASM_X86_64_APX
+        if (!(flags & HUF_flags_disableAsm)) {
+            loopFn = HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx;
+        }
+# endif
     } else {
         return fallbackFn(dst, dstSize, cSrc, cSrcSize, DTable);
     }
@@ -917,6 +929,13 @@ static size_t HUF_decompress4X1_usingDTable_internal(void* dst, size_t dstSize, 
 #if ZSTD_ENABLE_ASM_X86_64_BMI2 && defined(__BMI2__)
     if (!(flags & HUF_flags_disableAsm)) {
         loopFn = HUF_decompress4X1_usingDTable_internal_fast_asm_loop;
+    }
+#endif
+
+    /* APX check runs after BMI2 so it takes precedence when both are available. */
+#if ZSTD_ENABLE_ASM_X86_64_BMI2 && ZSTD_ENABLE_ASM_X86_64_APX && defined(__BMI2__)
+    if (!(flags & HUF_flags_disableAsm)) {
+        loopFn = HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx;
     }
 #endif
 

@@ -149,6 +149,28 @@
 # define ZSTD_ENABLE_ASM_X86_64_BMI2 0
 #endif
 
+/**
+ * Determines whether we should enable the APX-optimized assembly path for
+ * x86-64.  APX (Advanced Performance Extensions) provides:
+ *   - EGPR (r16-r31): extra general-purpose registers
+ *   - PUSH2/POP2: save/restore two registers per instruction
+ *   - NDD (New Data Destination): non-destructive 3-operand ALU forms
+ *   - NF (No-Flags): suppress EFLAGS updates on ALU instructions
+ *   - CCMP: conditional compare for branch-free comparison chains
+ *
+ * APX requires BMI2 support (the function also uses shrxq / shlxq).
+ * Default to 0 – the compiler define __APX_F__ enables auto-detection when
+ * the toolchain is invoked with -mapxf (or equivalent).
+ * Users may override by defining ZSTD_ENABLE_ASM_X86_64_APX externally.
+ */
+#ifndef ZSTD_ENABLE_ASM_X86_64_APX
+# if defined(__APX_F__) && ZSTD_ENABLE_ASM_X86_64_BMI2
+#   define ZSTD_ENABLE_ASM_X86_64_APX 1
+# else
+#   define ZSTD_ENABLE_ASM_X86_64_APX 0
+# endif
+#endif
+
 /*
  * For x86 ELF targets, add .note.gnu.property section for Intel CET in
  * assembly sources when CET is enabled.
