@@ -845,13 +845,16 @@ ZSTD_HIDE_ASM_FUNCTION(_HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx
     {nf} orq $1, %bits##n;              \
     shlxq %rax, %bits##n, %bits##n
 
+.text
 _HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx:
 HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx:
     ZSTD_CET_ENDBRANCH
     .cfi_startproc
     .cfi_def_cfa_offset 8
     .cfi_offset %rip, -8
-    /* Save all registers using PUSH2 (APX: 2 regs per instruction).
+    /* Save all registers using PUSH2 (APX: 2 regs per instruction) and PUSH.
+     * Stack pointer must be 16-byte aligned before the first PUSH2 instruction.
+     * Standard ABI entry leaves RSP congruent to 8 mod 16. A single PUSH corrects this.
      *
      * push2 %r1, %r2 stores r1 at [old_RSP-8] (high) and r2 at [old_RSP-16]
      * (low), then decrements RSP by 16.  For CFI purposes this is identical
@@ -865,44 +868,44 @@ HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx:
      *  [RSP+64]  r9      [RSP+72]  r10    -- push2 %r9,  %r10
      *  [RSP+80]  r11     [RSP+88]  r12    -- push2 %r11, %r12
      *  [RSP+96]  r13     [RSP+104] r14    -- push2 %r13, %r14
-     *  [RSP+112] r15                      -- push  %r15
      *  EGPRs used by this function:
-     *  [RSP+120] r16     [RSP+128] r17    -- push2 %r16, %r17
-     *  [RSP+136] r18     [RSP+144] r19    -- push2 %r18, %r19
-     *  [RSP+152] r20     [RSP+160] r21    -- push2 %r20, %r21
+     *  [RSP+112] r16     [RSP+120] r17    -- push2 %r16, %r17
+     *  [RSP+128] r18     [RSP+136] r19    -- push2 %r18, %r19
+     *  [RSP+144] r20     [RSP+152] r21    -- push2 %r20, %r21
+     *  [RSP+160] r15                      -- push  %r15
      * Total: 168 bytes.  CFA_offset = 8 + 168 = 176 after saves.
      */
-    push2 %rax, %rbx
-    .cfi_def_cfa_offset 24
-    .cfi_offset rax, -16
-    .cfi_offset rbx, -24
-    push2 %rcx, %rdx
-    .cfi_def_cfa_offset 40
-    .cfi_offset rcx, -32
-    .cfi_offset rdx, -40
-    push2 %rbp, %rsi
-    .cfi_def_cfa_offset 56
-    .cfi_offset rbp, -48
-    .cfi_offset rsi, -56
-    push2 %rdi, %r8
-    .cfi_def_cfa_offset 72
-    .cfi_offset rdi, -64
-    .cfi_offset r8, -72
-    push2 %r9, %r10
-    .cfi_def_cfa_offset 88
-    .cfi_offset r9, -80
-    .cfi_offset r10, -88
-    push2 %r11, %r12
-    .cfi_def_cfa_offset 104
-    .cfi_offset r11, -96
-    .cfi_offset r12, -104
-    push2 %r13, %r14
-    .cfi_def_cfa_offset 120
-    .cfi_offset r13, -112
-    .cfi_offset r14, -120
     push %r15
+    .cfi_def_cfa_offset 16
+    .cfi_offset r15, -16
+    push2 %rax, %rbx
+    .cfi_def_cfa_offset 32
+    .cfi_offset rax, -24
+    .cfi_offset rbx, -32
+    push2 %rcx, %rdx
+    .cfi_def_cfa_offset 48
+    .cfi_offset rcx, -40
+    .cfi_offset rdx, -48
+    push2 %rbp, %rsi
+    .cfi_def_cfa_offset 64
+    .cfi_offset rbp, -56
+    .cfi_offset rsi, -64
+    push2 %rdi, %r8
+    .cfi_def_cfa_offset 80
+    .cfi_offset rdi, -72
+    .cfi_offset r8, -80
+    push2 %r9, %r10
+    .cfi_def_cfa_offset 96
+    .cfi_offset r9, -88
+    .cfi_offset r10, -96
+    push2 %r11, %r12
+    .cfi_def_cfa_offset 112
+    .cfi_offset r11, -104
+    .cfi_offset r12, -112
+    push2 %r13, %r14
     .cfi_def_cfa_offset 128
-    .cfi_offset r15, -128
+    .cfi_offset r13, -120
+    .cfi_offset r14, -128
     /* EGPRs r16-r21: saved for ABI compliance.
      * CFI annotations for r16+ are omitted as they are not universally
      * supported by older unwinders. */
@@ -1079,36 +1082,36 @@ LOCAL_LABEL(4X1_apx_exit):
     .cfi_def_cfa_offset 144
     pop2 %r16, %r17
     .cfi_def_cfa_offset 128
-    pop %r15
-    .cfi_restore r15
-    .cfi_def_cfa_offset 120
     pop2 %r13, %r14
     .cfi_restore r13
     .cfi_restore r14
-    .cfi_def_cfa_offset 104
+    .cfi_def_cfa_offset 112
     pop2 %r11, %r12
     .cfi_restore r11
     .cfi_restore r12
-    .cfi_def_cfa_offset 88
+    .cfi_def_cfa_offset 96
     pop2 %r9, %r10
     .cfi_restore r9
     .cfi_restore r10
-    .cfi_def_cfa_offset 72
+    .cfi_def_cfa_offset 80
     pop2 %rdi, %r8
     .cfi_restore rdi
     .cfi_restore r8
-    .cfi_def_cfa_offset 56
+    .cfi_def_cfa_offset 64
     pop2 %rbp, %rsi
     .cfi_restore rbp
     .cfi_restore rsi
-    .cfi_def_cfa_offset 40
+    .cfi_def_cfa_offset 48
     pop2 %rcx, %rdx
     .cfi_restore rcx
     .cfi_restore rdx
-    .cfi_def_cfa_offset 24
+    .cfi_def_cfa_offset 32
     pop2 %rax, %rbx
     .cfi_restore rax
     .cfi_restore rbx
+    .cfi_def_cfa_offset 16
+    pop %r15
+    .cfi_restore r15
     .cfi_def_cfa_offset 8
     ret
     .cfi_endproc
