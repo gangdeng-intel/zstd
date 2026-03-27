@@ -1076,37 +1076,37 @@ LOCAL_LABEL(4X1_apx_exit):
     movq %bits3, 88(%rax)
 
     /* Restore registers in reverse push order using POP2 */
-    pop2 %r20, %r21
+    pop2 %r21, %r20
     .cfi_def_cfa_offset 160
-    pop2 %r18, %r19
+    pop2 %r19, %r18
     .cfi_def_cfa_offset 144
-    pop2 %r16, %r17
+    pop2 %r17, %r16
     .cfi_def_cfa_offset 128
-    pop2 %r13, %r14
+    pop2 %r14, %r13
     .cfi_restore r13
     .cfi_restore r14
     .cfi_def_cfa_offset 112
-    pop2 %r11, %r12
+    pop2 %r12, %r11
     .cfi_restore r11
     .cfi_restore r12
     .cfi_def_cfa_offset 96
-    pop2 %r9, %r10
+    pop2 %r10, %r9
     .cfi_restore r9
     .cfi_restore r10
     .cfi_def_cfa_offset 80
-    pop2 %rdi, %r8
+    pop2 %r8, %rdi
     .cfi_restore rdi
     .cfi_restore r8
     .cfi_def_cfa_offset 64
-    pop2 %rbp, %rsi
+    pop2 %rsi, %rbp
     .cfi_restore rbp
     .cfi_restore rsi
     .cfi_def_cfa_offset 48
-    pop2 %rcx, %rdx
+    pop2 %rdx, %rcx
     .cfi_restore rcx
     .cfi_restore rdx
     .cfi_def_cfa_offset 32
-    pop2 %rax, %rbx
+    pop2 %rbx, %rax
     .cfi_restore rax
     .cfi_restore rbx
     .cfi_def_cfa_offset 16
