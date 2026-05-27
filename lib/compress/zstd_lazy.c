@@ -1404,6 +1404,9 @@ size_t ZSTD_RowFindBestMatch(
 #define ZSTD_HC_SEARCH_FN(dictMode, mls) ZSTD_HcFindBestMatch_##dictMode##_##mls
 #define ZSTD_ROW_SEARCH_FN(dictMode, mls, rowLog) ZSTD_RowFindBestMatch_##dictMode##_##mls##_##rowLog
 #define ZSTD_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog) ZSTD_RowFindBestMatch_##dictMode##_##mls##_##rowLog##_apxf
+#if DYNAMIC_APXF
+#define ZSTD_BT_SEARCH_FN_APXF(dictMode, mls) ZSTD_BtFindBestMatch_##dictMode##_##mls##_apxf
+#endif
 
 #define ZSTD_SEARCH_FN_ATTRS FORCE_NOINLINE
 
@@ -1416,6 +1419,18 @@ size_t ZSTD_RowFindBestMatch(
         assert(MAX(4, MIN(6, ms->cParams.minMatch)) == mls);                           \
         return ZSTD_BtFindBestMatch(ms, ip, iLimit, offBasePtr, mls, ZSTD_##dictMode); \
     }                                                                                  \
+
+#if DYNAMIC_APXF
+#define GEN_ZSTD_BT_SEARCH_FN_APXF(dictMode, mls)                                              \
+    APXF_TARGET_ATTRIBUTE ZSTD_SEARCH_FN_ATTRS size_t ZSTD_BT_SEARCH_FN_APXF(dictMode, mls)(   \
+            ZSTD_MatchState_t* ms,                                                             \
+            const BYTE* ip, const BYTE* const iLimit,                                          \
+            size_t* offBasePtr)                                                                \
+    {                                                                                          \
+        assert(MAX(4, MIN(6, ms->cParams.minMatch)) == mls);                                   \
+        return ZSTD_BtFindBestMatch(ms, ip, iLimit, offBasePtr, mls, ZSTD_##dictMode);         \
+    }
+#endif
 
 #define GEN_ZSTD_HC_SEARCH_FN(dictMode, mls)                                          \
     ZSTD_SEARCH_FN_ATTRS size_t ZSTD_HC_SEARCH_FN(dictMode, mls)(                     \
@@ -1480,6 +1495,10 @@ ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS_ROWLOG, GEN_ZSTD_ROW_SEARCH_FN_APXF)
 #endif
 /* Generate binary Tree search fns for each combination of (dictMode, mls) */
 ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS, GEN_ZSTD_BT_SEARCH_FN)
+#if DYNAMIC_APXF
+/* Generate APXF binary Tree search fns for each combination of (dictMode, mls) */
+ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS, GEN_ZSTD_BT_SEARCH_FN_APXF)
+#endif
 /* Generate hash chain search fns for each combination of (dictMode, mls) */
 ZSTD_FOR_EACH_DICT_MODE(ZSTD_FOR_EACH_MLS, GEN_ZSTD_HC_SEARCH_FN)
 
@@ -1499,6 +1518,10 @@ typedef enum { search_hashChain=0, search_binaryTree=1, search_rowHash=2 } searc
 #define GEN_ZSTD_CALL_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog)                         \
     case rowLog:                                                                        \
         return ZSTD_ROW_SEARCH_FN_APXF(dictMode, mls, rowLog)(ms, ip, iend, offsetPtr);
+
+#define GEN_ZSTD_CALL_BT_SEARCH_FN_APXF(dictMode, mls)                                  \
+    case mls:                                                                            \
+        return ZSTD_BT_SEARCH_FN_APXF(dictMode, mls)(ms, ip, iend, offsetPtr);
 #endif
 
 #define ZSTD_SWITCH_MLS(X, dictMode)   \
@@ -1526,6 +1549,12 @@ typedef enum { search_hashChain=0, search_binaryTree=1, search_rowHash=2 } searc
 #define ZSTD_SWITCH_ROW_HASH_APXF(dictMode)            \
     switch (mls) {                                     \
         ZSTD_FOR_EACH_MLS(ZSTD_SWITCH_ROWLOG_APXF, dictMode) \
+    }                                                   \
+    ZSTD_UNREACHABLE;
+
+#define ZSTD_SWITCH_BT_APXF(dictMode)                  \
+    switch (mls) {                                     \
+        ZSTD_FOR_EACH_MLS(GEN_ZSTD_CALL_BT_SEARCH_FN_APXF, dictMode) \
     }                                                   \
     ZSTD_UNREACHABLE;
 #endif
@@ -1588,6 +1617,18 @@ FORCE_INLINE_TEMPLATE size_t ZSTD_searchMax(
             ZSTD_SWITCH_ROW_HASH_APXF(dictMatchState)
         } else if (dictMode == ZSTD_dedicatedDictSearch) {
             ZSTD_SWITCH_ROW_HASH_APXF(dedicatedDictSearch)
+        }
+        ZSTD_UNREACHABLE;
+    }
+    if (searchMethod == search_binaryTree && ms->apxf) {
+        if (dictMode == ZSTD_noDict) {
+            ZSTD_SWITCH_BT_APXF(noDict)
+        } else if (dictMode == ZSTD_extDict) {
+            ZSTD_SWITCH_BT_APXF(extDict)
+        } else if (dictMode == ZSTD_dictMatchState) {
+            ZSTD_SWITCH_BT_APXF(dictMatchState)
+        } else if (dictMode == ZSTD_dedicatedDictSearch) {
+            ZSTD_SWITCH_BT_APXF(dedicatedDictSearch)
         }
         ZSTD_UNREACHABLE;
     }
