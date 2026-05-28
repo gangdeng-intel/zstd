@@ -907,7 +907,11 @@ static size_t HUF_decompress4X1_usingDTable_internal(void* dst, size_t dstSize, 
 
 #if defined(DYNAMIC_APXF) && (DYNAMIC_APXF != 0)
     if (flags & HUF_flags_apxf) {
+#if HUF_NEED_BMI2_FUNCTION
         fallbackFn = HUF_decompress4X1_usingDTable_internal_bmi2;
+#else
+        fallbackFn = HUF_decompress4X1_usingDTable_internal_default;
+#endif
 # if ZSTD_ENABLE_ASM_X86_64_BMI2
         if (!(flags & HUF_flags_disableAsm)) {
             loopFn = HUF_decompress4X1_usingDTable_internal_fast_asm_loop_apx;
