@@ -323,4 +323,17 @@ MEM_STATIC int ZSTD_cpuSupportsBmi2(void)
     return ZSTD_cpuid_bmi1(cpuid) && ZSTD_cpuid_bmi2(cpuid);
 }
 
+/**
+ * @returns true iff the CPU supports dynamic APXF dispatch.
+ */
+MEM_STATIC int ZSTD_cpuSupportsApxf(void)
+{
+    static int supported = -1;
+    if (supported < 0) {
+        ZSTD_cpuid_t cpuid = ZSTD_cpuid();
+        supported = ZSTD_cpuid_apx_f(cpuid);
+    }
+    return supported;
+}
+
 #endif   /* ZSTD_CCOMMON_H_MODULE */
