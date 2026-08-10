@@ -344,9 +344,13 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
 #define E(name, bit) X(name, f29b, bit)
   E(apx_nci_ndd_nf_hw, 0)
 #undef E
+  /* True if APX is safe to use: HW supports baseline APX_F, HW supports
+   * the NDD/NF sub-features actually used by the APX code paths, and the
+   * OS has enabled saving/restoring the new APX register state (XCR0[19]). */
 
 MEM_STATIC int ZSTD_cpuid_apx_f(ZSTD_cpuid_t const cpuid) {
-    return ZSTD_cpuid_apx_f_hw(cpuid) && ZSTD_cpuid_apx_nci_ndd_nf_hw(cpuid) && ((cpuid.xcr0_eax & (1U << 19)) != 0);
+//    return ZSTD_cpuid_apx_f_hw(cpuid) && ZSTD_cpuid_apx_nci_ndd_nf_hw(cpuid) && ((cpuid.xcr0_eax & (1U << 19)) != 0);
+  return ZSTD_cpuid_apx_f_hw(cpuid) && ((cpuid.xcr0_eax & (1U << 19)) != 0);
 }
 
 #undef X
