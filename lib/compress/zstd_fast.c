@@ -440,6 +440,26 @@ ZSTD_GEN_FAST_FN(noDict, 5, 0)
 ZSTD_GEN_FAST_FN(noDict, 6, 0)
 ZSTD_GEN_FAST_FN(noDict, 7, 0)
 
+#if DYNAMIC_APXF
+#define ZSTD_GEN_FAST_FN_APXF(dictMode, mml, cmov)                                                       \
+    static APXF_TARGET_ATTRIBUTE size_t ZSTD_compressBlock_fast_##dictMode##_##mml##_##cmov##_apxf(       \
+            ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],                           \
+            void const* src, size_t srcSize)                                                              \
+    {                                                                                                    \
+        return ZSTD_compressBlock_fast_##dictMode##_generic(ms, seqStore, rep, src, srcSize, mml, cmov); \
+    }
+
+ZSTD_GEN_FAST_FN_APXF(noDict, 4, 1)
+ZSTD_GEN_FAST_FN_APXF(noDict, 5, 1)
+ZSTD_GEN_FAST_FN_APXF(noDict, 6, 1)
+ZSTD_GEN_FAST_FN_APXF(noDict, 7, 1)
+
+ZSTD_GEN_FAST_FN_APXF(noDict, 4, 0)
+ZSTD_GEN_FAST_FN_APXF(noDict, 5, 0)
+ZSTD_GEN_FAST_FN_APXF(noDict, 6, 0)
+ZSTD_GEN_FAST_FN_APXF(noDict, 7, 0)
+#endif
+
 size_t ZSTD_compressBlock_fast(
         ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize)
@@ -448,6 +468,37 @@ size_t ZSTD_compressBlock_fast(
     /* use cmov when "candidate in range" branch is likely unpredictable */
     int const useCmov = ms->cParams.windowLog < 19;
     assert(ms->dictMatchState == NULL);
+#if DYNAMIC_APXF
+    if (ms->apxf) {
+        if (useCmov) {
+            switch(mml)
+            {
+            default: /* includes case 3 */
+            case 4 :
+                return ZSTD_compressBlock_fast_noDict_4_1_apxf(ms, seqStore, rep, src, srcSize);
+            case 5 :
+                return ZSTD_compressBlock_fast_noDict_5_1_apxf(ms, seqStore, rep, src, srcSize);
+            case 6 :
+                return ZSTD_compressBlock_fast_noDict_6_1_apxf(ms, seqStore, rep, src, srcSize);
+            case 7 :
+                return ZSTD_compressBlock_fast_noDict_7_1_apxf(ms, seqStore, rep, src, srcSize);
+            }
+        } else {
+            switch(mml)
+            {
+            default: /* includes case 3 */
+            case 4 :
+                return ZSTD_compressBlock_fast_noDict_4_0_apxf(ms, seqStore, rep, src, srcSize);
+            case 5 :
+                return ZSTD_compressBlock_fast_noDict_5_0_apxf(ms, seqStore, rep, src, srcSize);
+            case 6 :
+                return ZSTD_compressBlock_fast_noDict_6_0_apxf(ms, seqStore, rep, src, srcSize);
+            case 7 :
+                return ZSTD_compressBlock_fast_noDict_7_0_apxf(ms, seqStore, rep, src, srcSize);
+            }
+        }
+    }
+#endif
     if (useCmov) {
         switch(mml)
         {

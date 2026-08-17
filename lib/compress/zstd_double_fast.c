@@ -554,15 +554,39 @@ _match_stored:
         return ZSTD_compressBlock_doubleFast_##dictMode##_generic(ms, seqStore, rep, src, srcSize, mls); \
     }
 
+#if DYNAMIC_APXF
+#define ZSTD_GEN_DFAST_FN_APXF(dictMode, mls)                                                            \
+    static APXF_TARGET_ATTRIBUTE size_t ZSTD_compressBlock_doubleFast_##dictMode##_##mls##_apxf(         \
+            ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],                          \
+            void const* src, size_t srcSize)                                                             \
+    {                                                                                                    \
+        return ZSTD_compressBlock_doubleFast_##dictMode##_generic(ms, seqStore, rep, src, srcSize, mls); \
+    }
+#endif
+
 ZSTD_GEN_DFAST_FN(noDict, 4)
 ZSTD_GEN_DFAST_FN(noDict, 5)
 ZSTD_GEN_DFAST_FN(noDict, 6)
 ZSTD_GEN_DFAST_FN(noDict, 7)
 
+#if DYNAMIC_APXF
+ZSTD_GEN_DFAST_FN_APXF(noDict, 4)
+ZSTD_GEN_DFAST_FN_APXF(noDict, 5)
+ZSTD_GEN_DFAST_FN_APXF(noDict, 6)
+ZSTD_GEN_DFAST_FN_APXF(noDict, 7)
+#endif
+
 ZSTD_GEN_DFAST_FN(dictMatchState, 4)
 ZSTD_GEN_DFAST_FN(dictMatchState, 5)
 ZSTD_GEN_DFAST_FN(dictMatchState, 6)
 ZSTD_GEN_DFAST_FN(dictMatchState, 7)
+
+#if DYNAMIC_APXF
+ZSTD_GEN_DFAST_FN_APXF(dictMatchState, 4)
+ZSTD_GEN_DFAST_FN_APXF(dictMatchState, 5)
+ZSTD_GEN_DFAST_FN_APXF(dictMatchState, 6)
+ZSTD_GEN_DFAST_FN_APXF(dictMatchState, 7)
+#endif
 
 
 size_t ZSTD_compressBlock_doubleFast(
@@ -570,6 +594,22 @@ size_t ZSTD_compressBlock_doubleFast(
         void const* src, size_t srcSize)
 {
     const U32 mls = ms->cParams.minMatch;
+#if DYNAMIC_APXF
+    if (ms->apxf) {
+        switch(mls)
+        {
+        default: /* includes case 3 */
+        case 4 :
+            return ZSTD_compressBlock_doubleFast_noDict_4_apxf(ms, seqStore, rep, src, srcSize);
+        case 5 :
+            return ZSTD_compressBlock_doubleFast_noDict_5_apxf(ms, seqStore, rep, src, srcSize);
+        case 6 :
+            return ZSTD_compressBlock_doubleFast_noDict_6_apxf(ms, seqStore, rep, src, srcSize);
+        case 7 :
+            return ZSTD_compressBlock_doubleFast_noDict_7_apxf(ms, seqStore, rep, src, srcSize);
+        }
+    }
+#endif
     switch(mls)
     {
     default: /* includes case 3 */
@@ -590,6 +630,22 @@ size_t ZSTD_compressBlock_doubleFast_dictMatchState(
         void const* src, size_t srcSize)
 {
     const U32 mls = ms->cParams.minMatch;
+#if DYNAMIC_APXF
+    if (ms->apxf) {
+        switch(mls)
+        {
+        default: /* includes case 3 */
+        case 4 :
+            return ZSTD_compressBlock_doubleFast_dictMatchState_4_apxf(ms, seqStore, rep, src, srcSize);
+        case 5 :
+            return ZSTD_compressBlock_doubleFast_dictMatchState_5_apxf(ms, seqStore, rep, src, srcSize);
+        case 6 :
+            return ZSTD_compressBlock_doubleFast_dictMatchState_6_apxf(ms, seqStore, rep, src, srcSize);
+        case 7 :
+            return ZSTD_compressBlock_doubleFast_dictMatchState_7_apxf(ms, seqStore, rep, src, srcSize);
+        }
+    }
+#endif
     switch(mls)
     {
     default: /* includes case 3 */
@@ -756,11 +812,34 @@ ZSTD_GEN_DFAST_FN(extDict, 5)
 ZSTD_GEN_DFAST_FN(extDict, 6)
 ZSTD_GEN_DFAST_FN(extDict, 7)
 
+#if DYNAMIC_APXF
+ZSTD_GEN_DFAST_FN_APXF(extDict, 4)
+ZSTD_GEN_DFAST_FN_APXF(extDict, 5)
+ZSTD_GEN_DFAST_FN_APXF(extDict, 6)
+ZSTD_GEN_DFAST_FN_APXF(extDict, 7)
+#endif
+
 size_t ZSTD_compressBlock_doubleFast_extDict(
         ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize)
 {
     U32 const mls = ms->cParams.minMatch;
+#if DYNAMIC_APXF
+    if (ms->apxf) {
+        switch(mls)
+        {
+        default: /* includes case 3 */
+        case 4 :
+            return ZSTD_compressBlock_doubleFast_extDict_4_apxf(ms, seqStore, rep, src, srcSize);
+        case 5 :
+            return ZSTD_compressBlock_doubleFast_extDict_5_apxf(ms, seqStore, rep, src, srcSize);
+        case 6 :
+            return ZSTD_compressBlock_doubleFast_extDict_6_apxf(ms, seqStore, rep, src, srcSize);
+        case 7 :
+            return ZSTD_compressBlock_doubleFast_extDict_7_apxf(ms, seqStore, rep, src, srcSize);
+        }
+    }
+#endif
     switch(mls)
     {
     default: /* includes case 3 */

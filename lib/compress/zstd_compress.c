@@ -2032,6 +2032,9 @@ ZSTD_reset_matchState(ZSTD_MatchState_t* ms,
 
     ms->hashLog3 = hashLog3;
     ms->lazySkipping = 0;
+#if DYNAMIC_APXF
+    ms->apxf = ZSTD_cpuSupportsApxf();
+#endif
 
     ZSTD_invalidateMatchState(ms);
 

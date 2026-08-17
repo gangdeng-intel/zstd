@@ -301,6 +301,10 @@ struct ZSTD_MatchState_t {
     ZSTD_compressionParameters cParams;
     const RawSeqStore_t* ldmSeqStore;
 
+#if DYNAMIC_APXF
+    int apxf;                     /* == 1 if the CPU supports APXF and 0 otherwise. CPU support is determined dynamically once per context lifetime. */
+#endif
+
     /* Controls prefetching in some dictMatchState matchfinders.
      * This behavior is controlled from the cctx ms.
      * This parameter has no effect in the cdict ms. */
