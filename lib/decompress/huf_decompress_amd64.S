@@ -975,7 +975,7 @@ LOCAL_LABEL(4X1_apx_compute_olimit):
     movabsq $2635249153387078803, %rdx
     mulq %rdx
     {nf} subq %rdx, %rbx
-    {nf} shrq %rbx
+    {nf} shrq $1, %rbx
     {nf} addq %rbx, %rdx
     {nf} shrq $2, %rdx
 
