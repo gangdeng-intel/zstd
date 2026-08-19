@@ -20,6 +20,11 @@ void ZSTD_fillHashTable(ZSTD_MatchState_t* ms,
 size_t ZSTD_compressBlock_fast(
         ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize);
+#if DYNAMIC_APXF
+size_t ZSTD_compressBlock_fast_apxf(
+        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
+        void const* src, size_t srcSize);
+#endif
 size_t ZSTD_compressBlock_fast_dictMatchState(
         ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize);

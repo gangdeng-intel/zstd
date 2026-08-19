@@ -150,6 +150,24 @@
 #  define APXF_TARGET_ATTRIBUTE TARGET_ATTRIBUTE("lzcnt,bmi,bmi2")
 #endif
 
+/* Page-align a (hot) function entry.
+ *
+ * When DYNAMIC_APXF is enabled, the extra _apxf variant functions enlarge the
+ * binary and shift the address of the hot block compressors. On some toolchains
+ * (observed with clang) this relocates the hot loop to a less favorable position
+ * modulo the front-end structures (uop-cache / BTB / L1i set index, period 4KB),
+ * costing a few percent at levels 1-2 even though the hot code itself is
+ * byte-for-byte unchanged. Pinning the entry to a 4KB boundary makes its low
+ * address bits invariant to binary size, removing this layout sensitivity.
+ * Relies only on the aligned attribute, honored under any build flags / linker;
+ * it is applied at the call site under #if DYNAMIC_APXF so a non-APXF build is
+ * unaffected (no padding). */
+#if defined(__GNUC__) || defined(__clang__)
+#  define ZSTD_ALIGN_PAGE __attribute__((aligned(4096)))
+#else
+#  define ZSTD_ALIGN_PAGE
+#endif
+
 /* prefetch
  * can be disabled, by declaring NO_PREFETCH build macro */
 #if defined(NO_PREFETCH)

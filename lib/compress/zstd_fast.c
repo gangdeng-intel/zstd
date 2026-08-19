@@ -460,6 +460,11 @@ ZSTD_GEN_FAST_FN_APXF(noDict, 6, 0)
 ZSTD_GEN_FAST_FN_APXF(noDict, 7, 0)
 #endif
 
+#if DYNAMIC_APXF
+/* Pin to a page boundary so the DYNAMIC_APXF variants above cannot shift this
+ * hot entry's front-end alignment. See ZSTD_ALIGN_PAGE in compiler.h. */
+ZSTD_ALIGN_PAGE
+#endif
 size_t ZSTD_compressBlock_fast(
         ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize)
@@ -468,37 +473,6 @@ size_t ZSTD_compressBlock_fast(
     /* use cmov when "candidate in range" branch is likely unpredictable */
     int const useCmov = ms->cParams.windowLog < 19;
     assert(ms->dictMatchState == NULL);
-#if DYNAMIC_APXF
-    if (ms->apxf) {
-        if (useCmov) {
-            switch(mml)
-            {
-            default: /* includes case 3 */
-            case 4 :
-                return ZSTD_compressBlock_fast_noDict_4_1_apxf(ms, seqStore, rep, src, srcSize);
-            case 5 :
-                return ZSTD_compressBlock_fast_noDict_5_1_apxf(ms, seqStore, rep, src, srcSize);
-            case 6 :
-                return ZSTD_compressBlock_fast_noDict_6_1_apxf(ms, seqStore, rep, src, srcSize);
-            case 7 :
-                return ZSTD_compressBlock_fast_noDict_7_1_apxf(ms, seqStore, rep, src, srcSize);
-            }
-        } else {
-            switch(mml)
-            {
-            default: /* includes case 3 */
-            case 4 :
-                return ZSTD_compressBlock_fast_noDict_4_0_apxf(ms, seqStore, rep, src, srcSize);
-            case 5 :
-                return ZSTD_compressBlock_fast_noDict_5_0_apxf(ms, seqStore, rep, src, srcSize);
-            case 6 :
-                return ZSTD_compressBlock_fast_noDict_6_0_apxf(ms, seqStore, rep, src, srcSize);
-            case 7 :
-                return ZSTD_compressBlock_fast_noDict_7_0_apxf(ms, seqStore, rep, src, srcSize);
-            }
-        }
-    }
-#endif
     if (useCmov) {
         switch(mml)
         {
@@ -528,6 +502,47 @@ size_t ZSTD_compressBlock_fast(
         }
     }
 }
+
+#if DYNAMIC_APXF
+/* APXF sibling of ZSTD_compressBlock_fast. Kept as a separate entry (selected
+ * in ZSTD_selectBlockCompressor) so the baseline entry above stays byte-for-byte
+ * identical to a non-APXF build; only this thin router reaches the APXF variants. */
+size_t ZSTD_compressBlock_fast_apxf(
+        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
+        void const* src, size_t srcSize)
+{
+    U32 const mml = ms->cParams.minMatch;
+    int const useCmov = ms->cParams.windowLog < 19;
+    assert(ms->dictMatchState == NULL);
+    if (useCmov) {
+        switch(mml)
+        {
+        default: /* includes case 3 */
+        case 4 :
+            return ZSTD_compressBlock_fast_noDict_4_1_apxf(ms, seqStore, rep, src, srcSize);
+        case 5 :
+            return ZSTD_compressBlock_fast_noDict_5_1_apxf(ms, seqStore, rep, src, srcSize);
+        case 6 :
+            return ZSTD_compressBlock_fast_noDict_6_1_apxf(ms, seqStore, rep, src, srcSize);
+        case 7 :
+            return ZSTD_compressBlock_fast_noDict_7_1_apxf(ms, seqStore, rep, src, srcSize);
+        }
+    } else {
+        switch(mml)
+        {
+        default: /* includes case 3 */
+        case 4 :
+            return ZSTD_compressBlock_fast_noDict_4_0_apxf(ms, seqStore, rep, src, srcSize);
+        case 5 :
+            return ZSTD_compressBlock_fast_noDict_5_0_apxf(ms, seqStore, rep, src, srcSize);
+        case 6 :
+            return ZSTD_compressBlock_fast_noDict_6_0_apxf(ms, seqStore, rep, src, srcSize);
+        case 7 :
+            return ZSTD_compressBlock_fast_noDict_7_0_apxf(ms, seqStore, rep, src, srcSize);
+        }
+    }
+}
+#endif /* DYNAMIC_APXF */
 
 FORCE_INLINE_TEMPLATE
 ZSTD_ALLOW_POINTER_OVERFLOW_ATTR

@@ -113,6 +113,7 @@ static void ZSTD_initCCtx(ZSTD_CCtx* cctx, ZSTD_customMem memManager)
     ZSTD_memset(cctx, 0, sizeof(*cctx));
     cctx->customMem = memManager;
     cctx->bmi2 = ZSTD_cpuSupportsBmi2();
+    cctx->apxf = ZSTD_cpuSupportsApxf();
     {   size_t const err = ZSTD_CCtx_reset(cctx, ZSTD_reset_parameters);
         assert(!ZSTD_isError(err));
         (void)err;
@@ -153,6 +154,7 @@ ZSTD_CCtx* ZSTD_initStaticCCtx(void* workspace, size_t workspaceSize)
     cctx->tmpWorkspace = ZSTD_cwksp_reserve_object(&cctx->workspace, TMP_WORKSPACE_SIZE);
     cctx->tmpWkspSize = TMP_WORKSPACE_SIZE;
     cctx->bmi2 = ZSTD_cpuid_bmi2(ZSTD_cpuid());
+    cctx->apxf = ZSTD_cpuSupportsApxf();
     return cctx;
 }
 
@@ -2032,9 +2034,7 @@ ZSTD_reset_matchState(ZSTD_MatchState_t* ms,
 
     ms->hashLog3 = hashLog3;
     ms->lazySkipping = 0;
-#if DYNAMIC_APXF
     ms->apxf = ZSTD_cpuSupportsApxf();
-#endif
 
     ZSTD_invalidateMatchState(ms);
 
@@ -3093,7 +3093,7 @@ ZSTD_entropyCompressSeqStore(
 /* ZSTD_selectBlockCompressor() :
  * Not static, but internal use only (used by long distance matcher)
  * assumption : strat is a valid strategy */
-ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_ParamSwitch_e useRowMatchFinder, ZSTD_dictMode_e dictMode)
+ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_ParamSwitch_e useRowMatchFinder, ZSTD_dictMode_e dictMode, int apxf)
 {
     static const ZSTD_BlockCompressor_f blockCompressor[4][ZSTD_STRATEGY_MAX+1] = {
         { ZSTD_compressBlock_fast  /* default for 0 */,
@@ -3170,11 +3170,64 @@ ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_Para
         };
         DEBUGLOG(5, "Selecting a row-based matchfinder");
         assert(useRowMatchFinder != ZSTD_ps_auto);
+#if DYNAMIC_APXF
+        /* Parallel APXF-targeted row compressors. Selecting the sibling here
+         * (rather than branching inside the hot parser) keeps the baseline
+         * entry's codegen identical to a non-APXF build. */
+        if (apxf) {
+            static const ZSTD_BlockCompressor_f rowBasedBlockCompressorsApxf[4][3] = {
+                {
+                    ZSTD_COMPRESSBLOCK_GREEDY_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY2_ROW_APXF
+                },
+                {
+                    ZSTD_COMPRESSBLOCK_GREEDY_EXTDICT_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY_EXTDICT_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY2_EXTDICT_ROW_APXF
+                },
+                {
+                    ZSTD_COMPRESSBLOCK_GREEDY_DICTMATCHSTATE_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY_DICTMATCHSTATE_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY2_DICTMATCHSTATE_ROW_APXF
+                },
+                {
+                    ZSTD_COMPRESSBLOCK_GREEDY_DEDICATEDDICTSEARCH_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY_DEDICATEDDICTSEARCH_ROW_APXF,
+                    ZSTD_COMPRESSBLOCK_LAZY2_DEDICATEDDICTSEARCH_ROW_APXF
+                }
+            };
+            selectedCompressor = rowBasedBlockCompressorsApxf[(int)dictMode][(int)strat - (int)ZSTD_greedy];
+        } else
+#endif
         selectedCompressor = rowBasedBlockCompressors[(int)dictMode][(int)strat - (int)ZSTD_greedy];
     } else {
         selectedCompressor = blockCompressor[(int)dictMode][(int)strat];
     }
     assert(selectedCompressor != NULL);
+#if DYNAMIC_APXF
+    /* On APXF-capable CPUs, substitute the block-compressor entry with its
+     * APXF-targeted sibling. Selecting here (rather than branching inside the
+     * hot entry) keeps the baseline entry's codegen identical to a non-APXF
+     * build, mirroring how strategy/dictMode are already selected. */
+    if (apxf) {
+        if (selectedCompressor == ZSTD_compressBlock_fast) {
+            selectedCompressor = ZSTD_compressBlock_fast_apxf;
+        }
+#ifndef ZSTD_EXCLUDE_DFAST_BLOCK_COMPRESSOR
+        else if (selectedCompressor == ZSTD_compressBlock_doubleFast) {
+            selectedCompressor = ZSTD_compressBlock_doubleFast_apxf;
+        }
+        else if (selectedCompressor == ZSTD_compressBlock_doubleFast_dictMatchState) {
+            selectedCompressor = ZSTD_compressBlock_doubleFast_dictMatchState_apxf;
+        }
+        else if (selectedCompressor == ZSTD_compressBlock_doubleFast_extDict) {
+            selectedCompressor = ZSTD_compressBlock_doubleFast_extDict_apxf;
+        }
+#endif
+    }
+#endif
+    (void)apxf;
     return selectedCompressor;
 }
 
@@ -3429,7 +3482,8 @@ static size_t ZSTD_buildSeqStore(ZSTD_CCtx* zc, const void* src, size_t srcSize)
                         ZSTD_selectBlockCompressor(
                             zc->appliedParams.cParams.strategy,
                             zc->appliedParams.useRowMatchFinder,
-                            dictMode);
+                            dictMode,
+                            zc->apxf);
                     ms->ldmSeqStore = NULL;
                     DEBUGLOG(
                         5,
@@ -3442,7 +3496,8 @@ static size_t ZSTD_buildSeqStore(ZSTD_CCtx* zc, const void* src, size_t srcSize)
             ZSTD_BlockCompressor_f const blockCompressor = ZSTD_selectBlockCompressor(
                     zc->appliedParams.cParams.strategy,
                     zc->appliedParams.useRowMatchFinder,
-                    dictMode);
+                    dictMode,
+                    zc->apxf);
             ms->ldmSeqStore = NULL;
             lastLLSize = blockCompressor(ms, &zc->seqStore, zc->blockState.nextCBlock->rep, src, srcSize);
         }

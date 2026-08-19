@@ -594,22 +594,6 @@ size_t ZSTD_compressBlock_doubleFast(
         void const* src, size_t srcSize)
 {
     const U32 mls = ms->cParams.minMatch;
-#if DYNAMIC_APXF
-    if (ms->apxf) {
-        switch(mls)
-        {
-        default: /* includes case 3 */
-        case 4 :
-            return ZSTD_compressBlock_doubleFast_noDict_4_apxf(ms, seqStore, rep, src, srcSize);
-        case 5 :
-            return ZSTD_compressBlock_doubleFast_noDict_5_apxf(ms, seqStore, rep, src, srcSize);
-        case 6 :
-            return ZSTD_compressBlock_doubleFast_noDict_6_apxf(ms, seqStore, rep, src, srcSize);
-        case 7 :
-            return ZSTD_compressBlock_doubleFast_noDict_7_apxf(ms, seqStore, rep, src, srcSize);
-        }
-    }
-#endif
     switch(mls)
     {
     default: /* includes case 3 */
@@ -624,28 +608,33 @@ size_t ZSTD_compressBlock_doubleFast(
     }
 }
 
+#if DYNAMIC_APXF
+size_t ZSTD_compressBlock_doubleFast_apxf(
+        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
+        void const* src, size_t srcSize)
+{
+    const U32 mls = ms->cParams.minMatch;
+    switch(mls)
+    {
+    default: /* includes case 3 */
+    case 4 :
+        return ZSTD_compressBlock_doubleFast_noDict_4_apxf(ms, seqStore, rep, src, srcSize);
+    case 5 :
+        return ZSTD_compressBlock_doubleFast_noDict_5_apxf(ms, seqStore, rep, src, srcSize);
+    case 6 :
+        return ZSTD_compressBlock_doubleFast_noDict_6_apxf(ms, seqStore, rep, src, srcSize);
+    case 7 :
+        return ZSTD_compressBlock_doubleFast_noDict_7_apxf(ms, seqStore, rep, src, srcSize);
+    }
+}
+#endif /* DYNAMIC_APXF */
+
 
 size_t ZSTD_compressBlock_doubleFast_dictMatchState(
         ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize)
 {
     const U32 mls = ms->cParams.minMatch;
-#if DYNAMIC_APXF
-    if (ms->apxf) {
-        switch(mls)
-        {
-        default: /* includes case 3 */
-        case 4 :
-            return ZSTD_compressBlock_doubleFast_dictMatchState_4_apxf(ms, seqStore, rep, src, srcSize);
-        case 5 :
-            return ZSTD_compressBlock_doubleFast_dictMatchState_5_apxf(ms, seqStore, rep, src, srcSize);
-        case 6 :
-            return ZSTD_compressBlock_doubleFast_dictMatchState_6_apxf(ms, seqStore, rep, src, srcSize);
-        case 7 :
-            return ZSTD_compressBlock_doubleFast_dictMatchState_7_apxf(ms, seqStore, rep, src, srcSize);
-        }
-    }
-#endif
     switch(mls)
     {
     default: /* includes case 3 */
@@ -659,6 +648,27 @@ size_t ZSTD_compressBlock_doubleFast_dictMatchState(
         return ZSTD_compressBlock_doubleFast_dictMatchState_7(ms, seqStore, rep, src, srcSize);
     }
 }
+
+#if DYNAMIC_APXF
+size_t ZSTD_compressBlock_doubleFast_dictMatchState_apxf(
+        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
+        void const* src, size_t srcSize)
+{
+    const U32 mls = ms->cParams.minMatch;
+    switch(mls)
+    {
+    default: /* includes case 3 */
+    case 4 :
+        return ZSTD_compressBlock_doubleFast_dictMatchState_4_apxf(ms, seqStore, rep, src, srcSize);
+    case 5 :
+        return ZSTD_compressBlock_doubleFast_dictMatchState_5_apxf(ms, seqStore, rep, src, srcSize);
+    case 6 :
+        return ZSTD_compressBlock_doubleFast_dictMatchState_6_apxf(ms, seqStore, rep, src, srcSize);
+    case 7 :
+        return ZSTD_compressBlock_doubleFast_dictMatchState_7_apxf(ms, seqStore, rep, src, srcSize);
+    }
+}
+#endif /* DYNAMIC_APXF */
 
 
 static
@@ -824,22 +834,6 @@ size_t ZSTD_compressBlock_doubleFast_extDict(
         void const* src, size_t srcSize)
 {
     U32 const mls = ms->cParams.minMatch;
-#if DYNAMIC_APXF
-    if (ms->apxf) {
-        switch(mls)
-        {
-        default: /* includes case 3 */
-        case 4 :
-            return ZSTD_compressBlock_doubleFast_extDict_4_apxf(ms, seqStore, rep, src, srcSize);
-        case 5 :
-            return ZSTD_compressBlock_doubleFast_extDict_5_apxf(ms, seqStore, rep, src, srcSize);
-        case 6 :
-            return ZSTD_compressBlock_doubleFast_extDict_6_apxf(ms, seqStore, rep, src, srcSize);
-        case 7 :
-            return ZSTD_compressBlock_doubleFast_extDict_7_apxf(ms, seqStore, rep, src, srcSize);
-        }
-    }
-#endif
     switch(mls)
     {
     default: /* includes case 3 */
@@ -853,5 +847,26 @@ size_t ZSTD_compressBlock_doubleFast_extDict(
         return ZSTD_compressBlock_doubleFast_extDict_7(ms, seqStore, rep, src, srcSize);
     }
 }
+
+#if DYNAMIC_APXF
+size_t ZSTD_compressBlock_doubleFast_extDict_apxf(
+        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
+        void const* src, size_t srcSize)
+{
+    U32 const mls = ms->cParams.minMatch;
+    switch(mls)
+    {
+    default: /* includes case 3 */
+    case 4 :
+        return ZSTD_compressBlock_doubleFast_extDict_4_apxf(ms, seqStore, rep, src, srcSize);
+    case 5 :
+        return ZSTD_compressBlock_doubleFast_extDict_5_apxf(ms, seqStore, rep, src, srcSize);
+    case 6 :
+        return ZSTD_compressBlock_doubleFast_extDict_6_apxf(ms, seqStore, rep, src, srcSize);
+    case 7 :
+        return ZSTD_compressBlock_doubleFast_extDict_7_apxf(ms, seqStore, rep, src, srcSize);
+    }
+}
+#endif /* DYNAMIC_APXF */
 
 #endif /* ZSTD_EXCLUDE_DFAST_BLOCK_COMPRESSOR */

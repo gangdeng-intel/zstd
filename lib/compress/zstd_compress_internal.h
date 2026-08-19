@@ -301,9 +301,7 @@ struct ZSTD_MatchState_t {
     ZSTD_compressionParameters cParams;
     const RawSeqStore_t* ldmSeqStore;
 
-#if DYNAMIC_APXF
     int apxf;                     /* == 1 if the CPU supports APXF and 0 otherwise. CPU support is determined dynamically once per context lifetime. */
-#endif
 
     /* Controls prefetching in some dictMatchState matchfinders.
      * This behavior is controlled from the cctx ms.
@@ -477,6 +475,7 @@ struct ZSTD_CCtx_s {
     ZSTD_compressionStage_e stage;
     int cParamsChanged;                  /* == 1 if cParams(except wlog) or compression level are changed in requestedParams. Triggers transmission of new params to ZSTDMT (if available) then reset to 0. */
     int bmi2;                            /* == 1 if the CPU supports BMI2 and 0 otherwise. CPU support is determined dynamically once per context lifetime. */
+    int apxf;                            /* == 1 if the CPU supports APXF and 0 otherwise. CPU support is determined dynamically once per context lifetime. */
     ZSTD_CCtx_params requestedParams;
     ZSTD_CCtx_params appliedParams;
     ZSTD_CCtx_params simpleApiParams;    /* Param storage used by the simple API - not sticky. Must only be used in top-level simple API functions for storage. */
@@ -582,7 +581,7 @@ typedef enum {
 typedef size_t (*ZSTD_BlockCompressor_f) (
         ZSTD_MatchState_t* bs, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
         void const* src, size_t srcSize);
-ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_ParamSwitch_e rowMatchfinderMode, ZSTD_dictMode_e dictMode);
+ZSTD_BlockCompressor_f ZSTD_selectBlockCompressor(ZSTD_strategy strat, ZSTD_ParamSwitch_e rowMatchfinderMode, ZSTD_dictMode_e dictMode, int apxf);
 
 
 MEM_STATIC U32 ZSTD_LLcode(U32 litLength)
